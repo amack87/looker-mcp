@@ -34,12 +34,12 @@ type JsonRpcResponse = {
 
 // Method mapping from MCP tool names to client methods
 const methodMap: Record<string, keyof LookerMCP> = {
-  'getDashboard': 'getDashboard',
-  'runQuery': 'runQuery',
-  'getLook': 'getLook',
-  'getUser': 'getUser',
-  'getFolder': 'getFolder',
-  'getRole': 'getRole'
+  'mcp_looker_get_dashboard': 'getDashboard',
+  'mcp_looker_run_query': 'runQuery',
+  'mcp_looker_get_look': 'getLook',
+  'mcp_looker_get_user': 'getUser',
+  'mcp_looker_get_folder': 'getFolder',
+  'mcp_looker_get_role': 'getRole'
 };
 
 // Handle incoming messages
