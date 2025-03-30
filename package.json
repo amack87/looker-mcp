@@ -10,7 +10,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "prepare": "npm run build",
-    "mcp_looker": "ts-node src/mcp.ts"
+    "mcp_looker": "node dist/mcp.js"
   },
   "keywords": [
     "looker",
