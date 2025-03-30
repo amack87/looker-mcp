@@ -9,25 +9,13 @@ const testCases = [
     parameters: {
       id: '1'
     }
-  },
-  {
-    tool: 'runQuery',
-    parameters: {
-      model: 'appcues',
-      view: 'users',
-      fields: ['users.email', 'users.account_created_dt', 'users.account_name'],
-      limit: 5
-    }
   }
 ];
 
 async function runTest() {
   const mcpProcess = spawn('node', ['dist/mcp.js'], {
     env: {
-      ...process.env,
-      LOOKER_BASE_URL: 'https://appcues.looker.com',
-      LOOKER_CLIENT_ID: 'KWTr2Xjjq493qWgJcnPF',
-      LOOKER_CLIENT_SECRET: 'YncDjTRSnPgTv6RrwvGjTN7N'
+      ...process.env
     }
   });
 

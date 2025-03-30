@@ -4,10 +4,7 @@ const { spawn } = require('child_process');
 async function fetchDashboard213() {
   const mcpProcess = spawn('node', ['dist/mcp.js'], {
     env: {
-      ...process.env,
-      LOOKER_BASE_URL: 'https://appcues.looker.com',
-      LOOKER_CLIENT_ID: 'KWTr2Xjjq493qWgJcnPF',
-      LOOKER_CLIENT_SECRET: 'YncDjTRSnPgTv6RrwvGjTN7N'
+      ...process.env
     }
   });
 
