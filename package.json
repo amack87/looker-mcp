@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "Looker MCP server for Cursor IDE",
   "main": "dist/mcp.js",
+  "bin": "./dist/mcp.js",
   "private": true,
   "scripts": {
     "build": "tsc",
-    "start": "ts-node src/mcp.ts"
+    "start": "ts-node src/mcp.ts",
+    "prepare": "npm run build"
   },
   "keywords": [
     "looker",
