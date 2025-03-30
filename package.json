@@ -21,11 +21,12 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@looker/sdk": "^23.20.1",
-    "@looker/sdk-node": "^23.20.1",
+    "@looker/sdk": "^24.0.0",
+    "@looker/sdk-node": "^24.0.0",
+    "@looker/sdk-rtl": "^24.0.0",
     "axios": "^1.6.7",
     "dotenv": "^16.4.5",
-    "typescript": "^5.0.0",
+    "typescript": "^5.0.4",
     "ts-node": "^10.9.1"
   },
   "devDependencies": {
