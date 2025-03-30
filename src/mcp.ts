@@ -32,6 +32,16 @@ type JsonRpcResponse = {
   };
 };
 
+// Method mapping from MCP tool names to client methods
+const methodMap: Record<string, keyof LookerMCP> = {
+  'mcp_looker_get_dashboard': 'getDashboard',
+  'mcp_looker_run_query': 'runQuery',
+  'mcp_looker_get_look': 'getLook',
+  'mcp_looker_get_user': 'getUser',
+  'mcp_looker_get_folder': 'getFolder',
+  'mcp_looker_get_role': 'getRole'
+};
+
 // Handle incoming messages
 process.stdin.on('data', async (data) => {
   try {
@@ -53,12 +63,13 @@ process.stdin.on('data', async (data) => {
     };
 
     try {
-      // The method name is the tool name
-      const tool = request.method;
-      const parameters = request.params;
+      const clientMethod = methodMap[request.method];
+      if (!clientMethod) {
+        throw new Error(`Unknown method: ${request.method}`);
+      }
 
       // Call the appropriate method based on the tool name
-      const result = await (client[tool as keyof LookerMCP] as Function).call(client, parameters);
+      const result = await (client[clientMethod] as Function).call(client, request.params);
       response.result = result;
     } catch (error) {
       response.error = {
