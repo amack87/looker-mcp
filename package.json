@@ -1,5 +1,5 @@
 {
-  "name": "looker-mcp",
+  "name": "@amack87/looker-mcp",
   "version": "1.0.0",
   "description": "Looker MCP server for Cursor IDE",
   "main": "dist/mcp.js",
@@ -15,9 +15,8 @@
   "keywords": [
     "looker",
     "mcp",
-    "api",
-    "analytics",
-    "bi"
+    "cursor",
+    "api"
   ],
   "author": "",
   "license": "MIT",
