@@ -6,7 +6,6 @@
   "bin": {
     "mcp_looker": "./dist/mcp.js"
   },
-  "private": true,
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
