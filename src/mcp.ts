@@ -112,4 +112,77 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (error) => {
   console.error('Unhandled rejection:', error);
   process.exit(1);
+});
+
+async function main() {
+  // Read input from stdin
+  let input = '';
+  process.stdin.setEncoding('utf8');
+  
+  process.stdin.on('data', (chunk) => {
+    input += chunk;
+  });
+
+  process.stdin.on('end', async () => {
+    try {
+      // Parse the input JSON
+      const request = JSON.parse(input);
+      
+      // Initialize LookerMCP with environment variables
+      const lookerMcp = new LookerMCP({
+        baseUrl: process.env.LOOKER_BASE_URL!,
+        clientId: process.env.LOOKER_CLIENT_ID!,
+        clientSecret: process.env.LOOKER_CLIENT_SECRET!
+      });
+
+      console.error('Received request:', request);
+
+      // Handle different tool invocations
+      switch (request.tool) {
+        case 'getDashboard':
+          const dashboard = await lookerMcp.getDashboard(request.parameters.id);
+          console.log(JSON.stringify(dashboard));
+          break;
+          
+        case 'getLook':
+          const look = await lookerMcp.getLook(request.parameters.id);
+          console.log(JSON.stringify(look));
+          break;
+          
+        case 'runQuery':
+          const result = await lookerMcp.runQuery(request.parameters);
+          console.log(JSON.stringify(result));
+          break;
+          
+        case 'getUser':
+          const user = await lookerMcp.getUser(request.parameters.id);
+          console.log(JSON.stringify(user));
+          break;
+          
+        case 'getFolder':
+          const folder = await lookerMcp.getFolder(request.parameters.id);
+          console.log(JSON.stringify(folder));
+          break;
+          
+        case 'getRole':
+          const role = await lookerMcp.getRole(request.parameters.id);
+          console.log(JSON.stringify(role));
+          break;
+          
+        default:
+          throw new Error(`Unknown tool: ${request.tool}`);
+      }
+
+      await lookerMcp.destroy();
+      process.exit(0);
+    } catch (error) {
+      console.error('Error:', error);
+      process.exit(1);
+    }
+  });
+}
+
+main().catch(error => {
+  console.error('Unhandled error:', error);
+  process.exit(1);
 }); 
