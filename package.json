@@ -1,0 +1,38 @@
+{
+  "name": "looker-mcp",
+  "version": "1.0.0",
+  "description": "Looker MCP server for Cursor IDE",
+  "main": "dist/mcp.js",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "start": "ts-node src/mcp.ts"
+  },
+  "keywords": [
+    "looker",
+    "mcp",
+    "api",
+    "analytics",
+    "bi"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@looker/sdk": "^23.20.1",
+    "@looker/sdk-node": "^23.20.1",
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.1.0",
+    "@typescript-eslint/parser": "^7.1.0",
+    "eslint": "^8.57.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.2.5",
+    "ts-jest": "^29.1.2",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.1"
+  }
+} 
