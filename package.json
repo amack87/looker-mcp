@@ -1,15 +1,15 @@
 {
   "name": "@amack87/looker-mcp",
   "version": "1.0.0",
-  "description": "Looker MCP server for Cursor IDE",
-  "main": "dist/mcp.js",
+  "description": "Looker MCP for Cursor",
+  "main": "dist/index.js",
   "bin": {
-    "looker-mcp": "./dist/mcp.js"
+    "mcp_looker": "./dist/mcp.js"
   },
   "private": true,
   "scripts": {
     "build": "tsc",
-    "start": "ts-node src/mcp.ts",
+    "start": "node dist/index.js",
     "prepare": "npm run build",
     "run": "ts-node src/mcp.ts"
   },
