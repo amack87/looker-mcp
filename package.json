@@ -25,7 +25,7 @@
     "@looker/sdk-node": "^26.0.0",
     "@looker/sdk-rtl": "^21.6.4",
     "@modelcontextprotocol/sdk": "^1.28.0",
-    "axios": "^1.6.7",
+    "axios": "^1.14.0",
     "dotenv": "^16.4.5",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
@@ -39,5 +39,11 @@
     "jest": "^29.7.0",
     "prettier": "^3.2.5",
     "ts-jest": "^29.1.2"
+  },
+  "overrides": {
+    "minimatch": "^3.1.4",
+    "picomatch": "^2.3.2",
+    "flatted": "^3.4.2",
+    "form-data": "^4.0.4"
   }
 }
