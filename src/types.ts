@@ -97,6 +97,29 @@ export type LookerPermission =
   | 'deploy'
   | 'use_api'
 
+export interface CreateDashboardFilterParams {
+  dashboard_id: string
+  name: string
+  title: string
+  type: 'date_filter' | 'number_filter' | 'string_filter' | 'field_filter'
+  default_value?: string
+  model?: string
+  explore?: string
+  dimension?: string
+}
+
+export interface LookerDashboardFilter {
+  id: string
+  dashboard_id: string
+  name: string
+  title: string
+  type: string
+  default_value?: string
+  model?: string
+  explore?: string
+  dimension?: string
+}
+
 export interface LookerRole {
   id: string
   name: string

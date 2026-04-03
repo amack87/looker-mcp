@@ -29,4 +29,7 @@ coverage/
 
 # Logs
 logs/
-*.log 
+*.log
+
+# Claude IDE
+.claude/
