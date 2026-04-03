@@ -1,131 +1,120 @@
-# Looker MCP (Model Context Protocol)
+# Looker MCP Server
 
-A Model Context Protocol implementation for Looker that provides a standardized way to interact with Looker's API. This implementation wraps the official Looker SDK and provides a simplified, type-safe interface for common Looker operations.
+An MCP (Model Context Protocol) server for interacting with Looker's API. Provides tools for running queries, building and managing dashboards, exploring LookML models, and creating content. Built on the official Looker SDK. Designed for use with Claude Code, Cursor, or any MCP-compatible client.
 
-## Features
+## Setup
 
-- Type-safe API interactions
-- Simplified interface for common Looker operations
-- Built on top of the official Looker SDK
-- Support for:
-  - Running queries
-  - Managing dashboards
-  - Managing looks
-  - User management
-  - Folder operations
-  - Role management
+### Prerequisites
 
-## Installation
+- Node.js 18+
+- npm
+
+### Environment Variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `LOOKER_BASE_URL` | Yes | Your Looker instance URL (e.g. `https://mycompany.looker.com`) |
+| `LOOKER_CLIENT_ID` | Yes | Looker API client ID |
+| `LOOKER_CLIENT_SECRET` | Yes | Looker API client secret |
+
+Generate API credentials at **Looker > Admin > Users > Edit > API Keys**.
+
+### Install and Run
 
 ```bash
-npm install looker-mcp
+# Install dependencies
+npm install
+
+# Build
+npm run build
+
+# Run the server (stdio transport)
+node dist/mcp.js
 ```
 
-## Usage
+### Claude Code Configuration
 
-```typescript
-import { LookerMCP } from 'looker-mcp'
-
-// Initialize the client
-const client = new LookerMCP({
-  baseUrl: 'https://your-looker-instance.com',
-  clientId: 'your-client-id',
-  clientSecret: 'your-client-secret'
-})
-
-// Run a query
-const queryResult = await client.runQuery({
-  model: 'your_model',
-  view: 'your_view',
-  fields: ['field1', 'field2'],
-  filters: {
-    date: 'last 7 days'
-  },
-  limit: 100
-})
-
-// Get a dashboard
-const dashboard = await client.getDashboard('dashboard_id')
-
-// Get a look
-const look = await client.getLook('look_id')
-
-// Get a user
-const user = await client.getUser('user_id')
-
-// Get a folder
-const folder = await client.getFolder('folder_id')
-
-// Get a role
-const role = await client.getRole('role_id')
-
-// Clean up
-await client.destroy()
+```bash
+claude mcp add looker-extras -- node /path/to/looker-mcp/dist/mcp.js
 ```
 
-## Configuration
+Or add to your `.claude.json`:
 
-The LookerMCP client requires the following configuration:
+```json
+{
+  "mcpServers": {
+    "looker-extras": {
+      "command": "node",
+      "args": ["/path/to/looker-mcp/dist/mcp.js"],
+      "env": {
+        "LOOKER_BASE_URL": "...",
+        "LOOKER_CLIENT_ID": "...",
+        "LOOKER_CLIENT_SECRET": "..."
+      }
+    }
+  }
+}
+```
 
-- `baseUrl`: The URL of your Looker instance
-- `clientId`: Your Looker API client ID
-- `clientSecret`: Your Looker API client secret
+## Available Tools
 
-You can obtain API credentials from your Looker instance's Admin > Users page.
+### Query Execution
 
-## API Reference
+| Tool | Description |
+|------|-------------|
+| `query` | Run a Looker query (model, view, fields, filters, sorts, pivots, totals) |
+| `query_sql` | Generate the SQL for a query without executing it |
+| `query_url` | Generate a shareable Looker explore URL for a query |
+| `run_look` | Execute a saved Look (supports json, csv, txt, html, md, xlsx, sql output) |
 
-### Query Operations
+### Dashboard Management
 
-#### `runQuery(query: LookerQuery)`
-Runs a Looker query and returns the results.
+| Tool | Description |
+|------|-------------|
+| `get_dashboards` | Search for dashboards by title or folder |
+| `make_dashboard` | Create a new dashboard in a folder |
+| `update_dashboard` | Update title, description, or move to a different folder |
+| `get_dashboard_elements` | List all tiles on a dashboard with IDs and config |
+| `get_dashboard_layout` | Get full grid layout (row, column, width, height per tile) |
+| `delete_dashboard_element` | Delete a tile from a dashboard |
 
-### Dashboard Operations
+### Dashboard Tiles
 
-#### `getDashboard(id: string)`
-Retrieves a dashboard by ID.
+| Tool | Description |
+|------|-------------|
+| `add_dashboard_element` | Add a tile by look_id, query_id, or inline query |
+| `create_query_tile` | Create a tile with full query control (dynamic_fields, vis_config, pivots, totals) |
+| `add_markdown_tile` | Add a markdown/text tile |
+| `update_dashboard_element` | Edit title, subtitle, body, notes, query_id, vis_config |
+| `move_resize_dashboard_tile` | Move or resize a single tile on the grid |
+| `batch_move_dashboard_tiles` | Move/resize multiple tiles in one call |
+| `add_pivot_to_tile` | Add pivot columns to a query-based tile |
+| `add_table_calculation` | Add a table calculation to a tile |
+| `add_custom_dimension` | Add a custom dimension to a tile |
+| `add_custom_measure` | Add a custom measure to a tile |
 
-### Look Operations
+### Dashboard Filters
 
-#### `getLook(id: string)`
-Retrieves a look by ID.
+| Tool | Description |
+|------|-------------|
+| `create_dashboard_filter` | Create a filter (date, number, string, or field type) |
+| `wire_dashboard_filter_to_tile` | Wire a filter to a tile so it listens to that filter |
 
-### User Operations
+### LookML Exploration
 
-#### `getUser(id: string)`
-Retrieves a user by ID.
+| Tool | Description |
+|------|-------------|
+| `get_models` | List all LookML models with their explores |
+| `get_explores` | List explores in a model |
+| `get_dimensions` | Get all dimensions for an explore |
+| `get_measures` | Get all measures for an explore |
+| `get_filters` | Get all filter-only fields for an explore |
+| `get_parameters` | Get all parameters for an explore |
 
-### Folder Operations
+### Content
 
-#### `getFolder(id: string)`
-Retrieves a folder by ID.
-
-### Role Operations
-
-#### `getRole(id: string)`
-Retrieves a role by ID.
-
-## Types
-
-The package includes TypeScript type definitions for all entities:
-
-- `LookerQuery`
-- `LookerDashboard`
-- `LookerDashboardTile`
-- `LookerLook`
-- `LookerUser`
-- `LookerFolder`
-- `LookerRole`
-- `LookerPermission`
-
-## Error Handling
-
-All methods throw errors with descriptive messages when operations fail. It's recommended to wrap API calls in try-catch blocks.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-MIT 
+| Tool | Description |
+|------|-------------|
+| `get_looks` | Search for saved Looks by title or folder |
+| `make_look` | Create a new saved Look with a query |
+| `search_folders` | Search for folders by name |
