@@ -4,12 +4,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { LookerMCP } from './client';
-import { LookerMCPConfig } from './types';
+import type { LookerMCPConfig } from './types';
 
 const config: LookerMCPConfig = {
-  baseUrl: process.env.LOOKER_BASE_URL!,
-  clientId: process.env.LOOKER_CLIENT_ID!,
-  clientSecret: process.env.LOOKER_CLIENT_SECRET!
+  baseUrl: process.env.LOOKERSDK_BASE_URL!,
+  clientId: process.env.LOOKERSDK_CLIENT_ID!,
+  clientSecret: process.env.LOOKERSDK_CLIENT_SECRET!
 };
 
 const client = new LookerMCP(config);

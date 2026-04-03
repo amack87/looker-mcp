@@ -1,9 +1,9 @@
 import { ILooker40SDK } from '@looker/sdk'
 
 export interface LookerMCPConfig {
-  baseUrl: string
-  clientId: string
-  clientSecret: string
+  baseUrl?: string
+  clientId?: string
+  clientSecret?: string
 }
 
 export interface LookerMCPContext {
@@ -11,24 +11,17 @@ export interface LookerMCPContext {
   config: LookerMCPConfig
 }
 
-export interface LookerQuery {
+export interface LookerFolder {
+  id: string
+  name: string
+}
+
+export interface LookerDashboardQuery {
   model: string
   view: string
   fields: string[]
-  filters?: Record<string, string>
-  limit?: number
-  sorts?: string[]
-}
-
-export interface LookerDashboard {
-  id: string
-  title: string
-  description?: string
-  folder?: {
-    id: string
-    name: string
-  }
-  tiles: LookerDashboardTile[]
+  filters?: { [key: string]: string }
+  sorts: string[]
 }
 
 export interface LookerDashboardTile {
@@ -37,13 +30,23 @@ export interface LookerDashboardTile {
   type: 'look' | 'text' | 'query'
   lookId?: string
   queryId?: string
-  query?: LookerQuery
+  query?: LookerDashboardQuery
+}
+
+export interface LookerDashboard {
+  id: string
+  title: string
+  description?: string
+  folder?: LookerFolder
+  tiles: LookerDashboardTile[]
 }
 
 export interface LookerLook {
   id: string
   title: string
-  query: LookerQuery
+  description?: string
+  folder?: LookerFolder
+  query: LookerDashboardQuery
 }
 
 export interface LookerUser {
@@ -53,13 +56,33 @@ export interface LookerUser {
   email: string
   isDisabled: boolean
   roles: string[]
+  groups: string[]
 }
 
-export interface LookerFolder {
+export interface LookerGroup {
   id: string
   name: string
-  parentId?: string
-  children?: LookerFolder[]
+  userCount?: number
+  containsCurrentUser?: boolean
+  externalGroupId?: string
+  includeByDefault?: boolean
+  canAddToContent?: boolean
+  externallyManaged?: boolean
+}
+
+export interface LookerModelSet {
+  id: string
+  name: string
+  models: string[]
+}
+
+export interface LookerRole {
+  id: string
+  name: string
+  permission: string[]
+  modelSet?: LookerModelSet
+  users: string[]
+  groups: string[]
 }
 
 export type LookerPermission = 
@@ -123,15 +146,12 @@ export interface LookerDashboardFilter {
 export interface LookerRole {
   id: string
   name: string
-  permissions: LookerPermission[]
+  permission: string[]
   modelSet?: {
     id: string
     name: string
     models: string[]
   }
-  users?: LookerUser[]
-  groups?: {
-    id: string
-    name: string
-  }[]
+  users: string[]
+  groups: string[]
 } 

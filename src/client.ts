@@ -1,17 +1,23 @@
-import { LookerNodeSDK, NodeSettingsIniFile, NodeSettings } from '@looker/sdk-node'
-import { IDashboardElement, IUser, IGroup } from '@looker/sdk'
+import { LookerNodeSDK, NodeSettings } from '@looker/sdk-node'
+import { IDashboardElement, IUser, IGroup, IRole, IRequestAllUsers, IRequestAllRoles } from '@looker/sdk'
+import { IApiSettings, ApiSettings } from '@looker/sdk-rtl'
+import * as fs from 'fs'
+import * as path from 'path'
+import * as os from 'os'
 import type {
   LookerMCPConfig,
   LookerMCPContext,
-  LookerQuery,
   LookerDashboard,
+  LookerDashboardTile,
+  LookerDashboardQuery,
   LookerLook,
   LookerUser,
-  LookerFolder,
   LookerRole,
   LookerPermission,
   CreateDashboardFilterParams,
-  LookerDashboardFilter
+  LookerDashboardFilter,
+  LookerFolder,
+  LookerGroup
 } from './types'
 
 export class LookerMCP {
@@ -19,7 +25,7 @@ export class LookerMCP {
 
   constructor(config: LookerMCPConfig) {
     console.error('Initializing LookerMCP with config:', { baseUrl: config.baseUrl });
-    
+
     const settings = {
       base_url: config.baseUrl,
       verify_ssl: true,
@@ -90,156 +96,154 @@ export class LookerMCP {
     return queryId.toString()
   }
 
-  // Query Methods
-  async runQuery(query: LookerQuery) {
-    try {
-      const result = await this.context.sdk.ok(
-        this.context.sdk.create_query({
-          model: query.model,
-          view: query.view,
-          fields: query.fields,
-          filters: query.filters,
-          limit: query.limit?.toString(),
-          sorts: query.sorts
-        })
-      )
-
-      const queryResult = await this.context.sdk.ok(
-        this.context.sdk.run_query({
-          query_id: result.id!,
-          result_format: 'json'
-        })
-      )
-
-      return queryResult
-    } catch (error) {
-      throw new Error(`Failed to run query: ${error}`)
-    }
-  }
-
-  // Dashboard Methods
   async getDashboard(id: string): Promise<LookerDashboard> {
-    try {
-      const dashboard = await this.context.sdk.ok(
-        this.context.sdk.dashboard(id)
-      )
-
-      return {
-        id: dashboard.id!,
-        title: dashboard.title!,
-        description: dashboard.description ?? undefined,
-        folder: dashboard.folder ? {
-          id: dashboard.folder.id!,
-          name: dashboard.folder.name!
-        } : undefined,
-        tiles: dashboard.dashboard_elements!.map((element: IDashboardElement) => ({
-          id: element.id!,
-          title: element.title ?? undefined,
-          type: element.type! as 'look' | 'text' | 'query',
-          lookId: element.look_id ?? undefined,
-          queryId: element.query_id ?? undefined,
-          query: element.query ? {
-            model: element.query.model!,
-            view: element.query.view!,
-            fields: element.query.fields! as string[],
-            filters: element.query.filters ?? undefined,
-            sorts: element.query.sorts as string[]
-          } : undefined
-        }))
-      }
-    } catch (error) {
-      throw new Error(`Failed to get dashboard: ${error}`)
-    }
-  }
-
-  // Look Methods
-  async getLook(id: string): Promise<LookerLook> {
-    try {
-      const look = await this.context.sdk.ok(
-        this.context.sdk.look(id)
-      )
-
-      return {
-        id: look.id!,
-        title: look.title!,
-        query: {
-          model: look.query!.model!,
-          view: look.query!.view!,
-          fields: look.query!.fields! as string[],
-          filters: look.query!.filters ?? undefined,
-          sorts: look.query!.sorts as string[]
-        }
-      }
-    } catch (error) {
-      throw new Error(`Failed to get look: ${error}`)
-    }
-  }
-
-  // User Methods
-  async getUser(id: string): Promise<LookerUser> {
-    try {
-      const user = await this.context.sdk.ok(
-        this.context.sdk.user(id)
-      )
-
-      return {
-        id: user.id!,
-        firstName: user.first_name ?? undefined,
-        lastName: user.last_name ?? undefined,
-        email: user.email!,
-        isDisabled: user.is_disabled!,
-        roles: user.role_ids!
-      }
-    } catch (error) {
-      throw new Error(`Failed to get user: ${error}`)
-    }
-  }
-
-  // Folder Methods
-  async getFolder(id: string): Promise<LookerFolder> {
-    try {
-      const folder = await this.context.sdk.ok(
-        this.context.sdk.folder(id)
-      )
-
-      return {
-        id: folder.id!,
-        name: folder.name!,
-        parentId: folder.parent_id ?? undefined
-      }
-    } catch (error) {
-      throw new Error(`Failed to get folder: ${error}`)
-    }
-  }
-
-  // Role Methods
-  async getRole(id: string): Promise<LookerRole> {
-    try {
-      const role = await this.context.sdk.ok(
-        this.context.sdk.role(id)
-      )
-
-      return {
-        id: role.id!,
-        name: role.name!,
-        permissions: (role.permission_set!.permissions! as string[]).filter((p): p is LookerPermission => 
-          ['access_data', 'see_lookml_dashboards', 'see_looks', 'see_user_dashboards', 'explore',
-           'create_table_calculations', 'create_custom_fields', 'save_content', 'embed_browse_spaces',
-           'schedule_look_emails', 'schedule_external_look_emails', 'create_alerts', 'download_with_limit',
-           'download_without_limit', 'see_sql', 'clear_cache_refresh', 'see_drill_overlay', 'manage_spaces',
-           'manage_homepage', 'manage_models', 'manage_users', 'manage_groups', 'manage_roles',
-           'manage_access_filters', 'manage_themes', 'manage_timezones', 'manage_schedules',
-           'manage_alerts', 'manage_system_activity', 'manage_support_access', 'develop', 'deploy',
-           'use_api'].includes(p)
-        ),
-        modelSet: role.model_set ? {
-          id: role.model_set.id!,
-          name: role.model_set.name!,
-          models: role.model_set.models!
+    const dashboard = await this.context.sdk.ok(this.context.sdk.dashboard(id))
+    return {
+      id: dashboard.id!,
+      title: dashboard.title!,
+      description: dashboard.description ?? undefined,
+      folder: dashboard.folder ? {
+        id: dashboard.folder.id!,
+        name: dashboard.folder.name!
+      } : undefined,
+      tiles: dashboard.dashboard_elements!.map((element: IDashboardElement) => ({
+        id: element.id!,
+        title: element.title ?? undefined,
+        type: element.type! as 'look' | 'text' | 'query',
+        lookId: element.look_id?.toString(),
+        queryId: element.query_id?.toString(),
+        query: element.query ? {
+          model: element.query.model!,
+          view: element.query.view!,
+          fields: element.query.fields!,
+          filters: element.query.filters ?? undefined,
+          sorts: element.query.sorts || []
         } : undefined
+      }))
+    }
+  }
+
+  async listDashboards(): Promise<LookerDashboard[]> {
+    const dashboards = await this.context.sdk.ok(this.context.sdk.all_dashboards())
+    const fullDashboards = await Promise.all(
+      dashboards.map(async (dashboard) => {
+        const fullDashboard = await this.context.sdk.ok(this.context.sdk.dashboard(dashboard.id!))
+        return {
+          id: fullDashboard.id!,
+          title: fullDashboard.title!,
+          description: fullDashboard.description ?? undefined,
+          folder: fullDashboard.folder ? {
+            id: fullDashboard.folder.id!,
+            name: fullDashboard.folder.name!
+          } : undefined,
+          tiles: fullDashboard.dashboard_elements!.map(element => ({
+            id: element.id!,
+            title: element.title ?? undefined,
+            type: element.type! as 'look' | 'text' | 'query',
+            lookId: element.look_id?.toString(),
+            queryId: element.query_id?.toString(),
+            query: element.query ? {
+              model: element.query.model!,
+              view: element.query.view!,
+              fields: element.query.fields!,
+              filters: element.query.filters ?? undefined,
+              sorts: element.query.sorts || []
+            } : undefined
+          }))
+        }
+      })
+    )
+    return fullDashboards
+  }
+
+  async getLook(id: string): Promise<LookerLook> {
+    const look = await this.context.sdk.ok(this.context.sdk.look(id))
+    return {
+      id: look.id!,
+      title: look.title!,
+      description: look.description ?? undefined,
+      folder: look.folder ? {
+        id: look.folder.id!,
+        name: look.folder.name!
+      } : undefined,
+      query: {
+        model: look.query!.model!,
+        view: look.query!.view!,
+        fields: look.query!.fields!,
+        filters: look.query!.filters ?? undefined,
+        sorts: look.query!.sorts || []
       }
-    } catch (error) {
-      throw new Error(`Failed to get role: ${error}`)
+    }
+  }
+
+  async getUser(id: string): Promise<LookerUser> {
+    const user = await this.context.sdk.ok(this.context.sdk.user(id))
+    return {
+      id: user.id!.toString(),
+      firstName: user.first_name ?? undefined,
+      lastName: user.last_name ?? undefined,
+      email: user.email!,
+      isDisabled: user.is_disabled!,
+      roles: user.role_ids!.map(id => id.toString()),
+      groups: user.group_ids!.map(id => id.toString())
+    }
+  }
+
+  async listUsers(): Promise<LookerUser[]> {
+    const users = await this.context.sdk.ok(this.context.sdk.all_users({} as IRequestAllUsers))
+    return users.map(user => ({
+      id: user.id!.toString(),
+      firstName: user.first_name ?? undefined,
+      lastName: user.last_name ?? undefined,
+      email: user.email!,
+      isDisabled: user.is_disabled!,
+      roles: user.role_ids!.map(id => id.toString()),
+      groups: user.group_ids!.map(id => id.toString())
+    }))
+  }
+
+  async getRole(id: string): Promise<LookerRole> {
+    const role = await this.context.sdk.ok(this.context.sdk.role(id))
+    return {
+      id: role.id!.toString(),
+      name: role.name!,
+      permission: role.permission_set!.permissions!,
+      modelSet: role.model_set ? {
+        id: role.model_set.id!.toString(),
+        name: role.model_set.name!,
+        models: role.model_set.models!
+      } : undefined,
+      users: (role as any).users?.map((user: IUser) => user.id!.toString()) || [],
+      groups: (role as any).groups?.map((group: IGroup) => group.id!.toString()) || []
+    }
+  }
+
+  async listRoles(): Promise<LookerRole[]> {
+    const roles = await this.context.sdk.ok(this.context.sdk.all_roles({} as IRequestAllRoles))
+    return roles.map(role => ({
+      id: role.id!.toString(),
+      name: role.name!,
+      permission: role.permission_set!.permissions!,
+      modelSet: role.model_set ? {
+        id: role.model_set.id!.toString(),
+        name: role.model_set.name!,
+        models: role.model_set.models!
+      } : undefined,
+      users: (role as any).users?.map((user: IUser) => user.id!.toString()) || [],
+      groups: (role as any).groups?.map((group: IGroup) => group.id!.toString()) || []
+    }))
+  }
+
+  async me(): Promise<LookerUser> {
+    const me = await this.context.sdk.ok(this.context.sdk.me())
+    return {
+      id: me.id!.toString(),
+      firstName: me.first_name ?? undefined,
+      lastName: me.last_name ?? undefined,
+      email: me.email!,
+      isDisabled: me.is_disabled!,
+      roles: me.role_ids!.map(id => id.toString()),
+      groups: me.group_ids!.map(id => id.toString())
     }
   }
 
