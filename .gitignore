@@ -33,3 +33,4 @@ logs/
 
 # Claude IDE
 .claude/
+.cursorindexingignore
