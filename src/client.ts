@@ -1,5 +1,5 @@
 import { LookerNodeSDK, NodeSettings } from '@looker/sdk-node'
-import { IDashboardElement, IUser, IGroup, IRole, IRequestAllUsers, IRequestAllRoles } from '@looker/sdk'
+import { IDashboardElement, IUser, IGroup, IRole, IRequestAllUsers, IRequestAllRoles, IRequestAllGroups, IRequestAllUserAttributes } from '@looker/sdk'
 import { IApiSettings, ApiSettings } from '@looker/sdk-rtl'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -769,6 +769,7 @@ export class LookerMCP {
         this.context.sdk.create_dashboard_element({
           body: {
             dashboard_id: dashboardId,
+            type: 'vis',
             query_id: query.id!.toString(),
             title: params.title ?? null,
           }
@@ -1245,6 +1246,7 @@ export class LookerMCP {
       const body: Record<string, any> = {
         dashboard_id: dashboardId,
         title: params.title ?? null,
+        type: 'vis',
       }
       if (params.look_id) body.look_id = params.look_id
       if (queryId) body.query_id = queryId
@@ -1262,6 +1264,408 @@ export class LookerMCP {
       }
     } catch (error: any) {
       throw new Error(`Failed to add dashboard element: ${error?.message || error}`)
+    }
+  }
+
+  // ── Admin: User management ────────────────────────────────────────
+
+  async searchUsers(params: { email?: string; first_name?: string; last_name?: string; is_disabled?: boolean; limit?: number }) {
+    try {
+      const users = await this.context.sdk.ok(
+        this.context.sdk.search_users({
+          email: params.email ?? undefined,
+          first_name: params.first_name ?? undefined,
+          last_name: params.last_name ?? undefined,
+          is_disabled: params.is_disabled ?? undefined,
+          limit: params.limit ?? 50,
+        })
+      )
+      return users.map(user => ({
+        id: user.id!.toString(),
+        first_name: user.first_name ?? null,
+        last_name: user.last_name ?? null,
+        email: user.email ?? null,
+        is_disabled: user.is_disabled ?? false,
+        role_ids: (user.role_ids ?? []).map(id => id.toString()),
+        group_ids: (user.group_ids ?? []).map(id => id.toString()),
+      }))
+    } catch (error: any) {
+      throw new Error(`Failed to search users: ${error?.message || error}`)
+    }
+  }
+
+  async createUser(params: { first_name?: string; last_name?: string; email?: string; is_disabled?: boolean }) {
+    try {
+      const user = await this.context.sdk.ok(
+        this.context.sdk.create_user({
+          first_name: params.first_name ?? null,
+          last_name: params.last_name ?? null,
+          is_disabled: params.is_disabled ?? false,
+        })
+      )
+
+      // Set email via credentials_email if provided
+      if (params.email) {
+        await this.context.sdk.ok(
+          this.context.sdk.create_user_credentials_email(user.id!.toString(), {
+            email: params.email,
+          })
+        )
+      }
+
+      return {
+        id: user.id!.toString(),
+        first_name: user.first_name ?? null,
+        last_name: user.last_name ?? null,
+        email: params.email ?? null,
+        is_disabled: user.is_disabled ?? false,
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to create user: ${error?.message || error}`)
+    }
+  }
+
+  async updateUser(userId: string, params: { first_name?: string; last_name?: string; is_disabled?: boolean }) {
+    try {
+      const body: Record<string, any> = {}
+      if (params.first_name !== undefined) body.first_name = params.first_name
+      if (params.last_name !== undefined) body.last_name = params.last_name
+      if (params.is_disabled !== undefined) body.is_disabled = params.is_disabled
+
+      const user = await this.context.sdk.ok(
+        this.context.sdk.update_user(userId, body)
+      )
+      return {
+        id: user.id!.toString(),
+        first_name: user.first_name ?? null,
+        last_name: user.last_name ?? null,
+        email: user.email ?? null,
+        is_disabled: user.is_disabled ?? false,
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to update user: ${error?.message || error}`)
+    }
+  }
+
+  async deleteUser(userId: string) {
+    try {
+      await this.context.sdk.ok(this.context.sdk.delete_user(userId))
+      return { deleted: true, user_id: userId }
+    } catch (error: any) {
+      throw new Error(`Failed to delete user: ${error?.message || error}`)
+    }
+  }
+
+  async setUserRoles(userId: string, roleIds: string[]) {
+    try {
+      const roles = await this.context.sdk.ok(
+        this.context.sdk.set_user_roles(userId, roleIds)
+      )
+      return roles.map(r => ({
+        id: r.id!.toString(),
+        name: r.name!,
+      }))
+    } catch (error: any) {
+      throw new Error(`Failed to set user roles: ${error?.message || error}`)
+    }
+  }
+
+  // ── Admin: Permission sets ───────────────────────────────────────
+
+  async listPermissionSets() {
+    try {
+      const sets = await this.context.sdk.ok(
+        this.context.sdk.all_permission_sets()
+      )
+      return sets.map(s => ({
+        id: s.id!.toString(),
+        name: s.name!,
+        permissions: s.permissions ?? [],
+        built_in: s.built_in ?? false,
+        all_access: s.all_access ?? false,
+      }))
+    } catch (error: any) {
+      throw new Error(`Failed to list permission sets: ${error?.message || error}`)
+    }
+  }
+
+  async createPermissionSet(params: { name: string; permissions: string[] }) {
+    try {
+      const set = await this.context.sdk.ok(
+        this.context.sdk.create_permission_set({
+          name: params.name,
+          permissions: params.permissions,
+        })
+      )
+      return {
+        id: set.id!.toString(),
+        name: set.name!,
+        permissions: set.permissions ?? [],
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to create permission set: ${error?.message || error}`)
+    }
+  }
+
+  // ── Admin: Model sets ────────────────────────────────────────────
+
+  async listModelSets() {
+    try {
+      const sets = await this.context.sdk.ok(
+        this.context.sdk.all_model_sets()
+      )
+      return sets.map(s => ({
+        id: s.id!.toString(),
+        name: s.name!,
+        models: s.models ?? [],
+        built_in: s.built_in ?? false,
+        all_access: s.all_access ?? false,
+      }))
+    } catch (error: any) {
+      throw new Error(`Failed to list model sets: ${error?.message || error}`)
+    }
+  }
+
+  async createModelSet(params: { name: string; models: string[] }) {
+    try {
+      const set = await this.context.sdk.ok(
+        this.context.sdk.create_model_set({
+          name: params.name,
+          models: params.models,
+        })
+      )
+      return {
+        id: set.id!.toString(),
+        name: set.name!,
+        models: set.models ?? [],
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to create model set: ${error?.message || error}`)
+    }
+  }
+
+  // ── Admin: Roles ─────────────────────────────────────────────────
+
+  async createRole(params: { name: string; permission_set_id: string; model_set_id: string }) {
+    try {
+      const role = await this.context.sdk.ok(
+        this.context.sdk.create_role({
+          name: params.name,
+          permission_set_id: params.permission_set_id,
+          model_set_id: params.model_set_id,
+        })
+      )
+      return {
+        id: role.id!.toString(),
+        name: role.name!,
+        permission_set: role.permission_set ? {
+          id: role.permission_set.id!.toString(),
+          name: role.permission_set.name!,
+        } : null,
+        model_set: role.model_set ? {
+          id: role.model_set.id!.toString(),
+          name: role.model_set.name!,
+          models: role.model_set.models!,
+        } : null,
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to create role: ${error?.message || error}`)
+    }
+  }
+
+  async updateRole(roleId: string, params: { name?: string; permission_set_id?: string; model_set_id?: string }) {
+    try {
+      const body: Record<string, any> = {}
+      if (params.name !== undefined) body.name = params.name
+      if (params.permission_set_id !== undefined) body.permission_set_id = params.permission_set_id
+      if (params.model_set_id !== undefined) body.model_set_id = params.model_set_id
+
+      const role = await this.context.sdk.ok(
+        this.context.sdk.update_role(roleId, body)
+      )
+      return {
+        id: role.id!.toString(),
+        name: role.name!,
+        permission_set: role.permission_set ? {
+          id: role.permission_set.id!.toString(),
+          name: role.permission_set.name!,
+        } : null,
+        model_set: role.model_set ? {
+          id: role.model_set.id!.toString(),
+          name: role.model_set.name!,
+          models: role.model_set.models!,
+        } : null,
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to update role: ${error?.message || error}`)
+    }
+  }
+
+  // ── Admin: User attributes ───────────────────────────────────────
+
+  async listUserAttributes() {
+    try {
+      const attrs = await this.context.sdk.ok(
+        this.context.sdk.all_user_attributes({} as IRequestAllUserAttributes)
+      )
+      return attrs.map(a => ({
+        id: a.id!.toString(),
+        name: a.name!,
+        label: a.label ?? null,
+        type: a.type ?? null,
+        default_value: a.default_value ?? null,
+        user_can_view: a.user_can_view ?? false,
+        user_can_edit: a.user_can_edit ?? false,
+        value_is_hidden: a.value_is_hidden ?? false,
+      }))
+    } catch (error: any) {
+      throw new Error(`Failed to list user attributes: ${error?.message || error}`)
+    }
+  }
+
+  async createUserAttribute(params: {
+    name: string
+    label: string
+    type: string
+    default_value?: string
+    user_can_view?: boolean
+    user_can_edit?: boolean
+    value_is_hidden?: boolean
+  }) {
+    try {
+      const attr = await this.context.sdk.ok(
+        this.context.sdk.create_user_attribute({
+          name: params.name,
+          label: params.label,
+          type: params.type,
+          default_value: params.default_value ?? null,
+          user_can_view: params.user_can_view ?? true,
+          user_can_edit: params.user_can_edit ?? false,
+          value_is_hidden: params.value_is_hidden ?? false,
+        })
+      )
+      return {
+        id: attr.id!.toString(),
+        name: attr.name!,
+        label: attr.label ?? null,
+        type: attr.type ?? null,
+        default_value: attr.default_value ?? null,
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to create user attribute: ${error?.message || error}`)
+    }
+  }
+
+  async setUserAttributeValue(userId: string, userAttributeId: string, value: string) {
+    try {
+      const result = await this.context.sdk.ok(
+        this.context.sdk.set_user_attribute_user_value(userId, userAttributeId, {
+          value,
+        })
+      )
+      return {
+        user_id: userId,
+        user_attribute_id: result.user_attribute_id?.toString() ?? userAttributeId,
+        value: result.value ?? null,
+        source: result.source ?? null,
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to set user attribute value: ${error?.message || error}`)
+    }
+  }
+
+  async getUserAttributeValues(userId: string) {
+    try {
+      const values = await this.context.sdk.ok(
+        this.context.sdk.user_attribute_user_values({
+          user_id: userId,
+        })
+      )
+      return values.map(v => ({
+        user_attribute_id: v.user_attribute_id?.toString() ?? null,
+        name: v.name ?? null,
+        label: v.label ?? null,
+        value: v.value ?? null,
+        source: v.source ?? null,
+      }))
+    } catch (error: any) {
+      throw new Error(`Failed to get user attribute values: ${error?.message || error}`)
+    }
+  }
+
+  // ── Admin: Groups ────────────────────────────────────────────────
+
+  async listGroups() {
+    try {
+      const groups = await this.context.sdk.ok(
+        this.context.sdk.all_groups({} as IRequestAllGroups)
+      )
+      return groups.map(g => ({
+        id: g.id!.toString(),
+        name: g.name!,
+        user_count: g.user_count ?? 0,
+        externally_managed: g.externally_managed ?? false,
+      }))
+    } catch (error: any) {
+      throw new Error(`Failed to list groups: ${error?.message || error}`)
+    }
+  }
+
+  async createGroup(name: string) {
+    try {
+      const group = await this.context.sdk.ok(
+        this.context.sdk.create_group({ name })
+      )
+      return {
+        id: group.id!.toString(),
+        name: group.name!,
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to create group: ${error?.message || error}`)
+    }
+  }
+
+  async addUserToGroup(groupId: string, userId: string) {
+    try {
+      const user = await this.context.sdk.ok(
+        this.context.sdk.add_group_user(groupId, { user_id: userId })
+      )
+      return {
+        group_id: groupId,
+        user_id: user.id!.toString(),
+        email: user.email ?? null,
+      }
+    } catch (error: any) {
+      throw new Error(`Failed to add user to group: ${error?.message || error}`)
+    }
+  }
+
+  async removeUserFromGroup(groupId: string, userId: string) {
+    try {
+      await this.context.sdk.ok(
+        this.context.sdk.delete_group_user(groupId, userId)
+      )
+      return { removed: true, group_id: groupId, user_id: userId }
+    } catch (error: any) {
+      throw new Error(`Failed to remove user from group: ${error?.message || error}`)
+    }
+  }
+
+  async listGroupUsers(groupId: string) {
+    try {
+      const users = await this.context.sdk.ok(
+        this.context.sdk.all_group_users({
+          group_id: groupId,
+        })
+      )
+      return users.map(u => ({
+        id: u.id!.toString(),
+        first_name: u.first_name ?? null,
+        last_name: u.last_name ?? null,
+        email: u.email ?? null,
+      }))
+    } catch (error: any) {
+      throw new Error(`Failed to list group users: ${error?.message || error}`)
     }
   }
 

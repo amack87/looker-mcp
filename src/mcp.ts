@@ -569,6 +569,280 @@ server.tool(
   }
 );
 
+// ── Admin: User management ──────────────────────────────────────────
+
+server.tool(
+  'search_users',
+  'Search for Looker users by email, first name, last name, or disabled status.',
+  {
+    email: z.string().optional().describe('Filter by email address'),
+    first_name: z.string().optional().describe('Filter by first name'),
+    last_name: z.string().optional().describe('Filter by last name'),
+    is_disabled: z.boolean().optional().describe('Filter by disabled status'),
+    limit: z.number().optional().describe('Max results (default 50)'),
+  },
+  async (params) => {
+    const result = await client.searchUsers(params);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'create_user',
+  'Create a new Looker user. Optionally set email (via credentials_email).',
+  {
+    first_name: z.string().optional().describe('First name'),
+    last_name: z.string().optional().describe('Last name'),
+    email: z.string().optional().describe('Email address (creates credentials_email)'),
+    is_disabled: z.boolean().optional().describe('Whether the user is disabled (default false)'),
+  },
+  async (params) => {
+    const result = await client.createUser(params);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'update_user',
+  'Update an existing Looker user (name, disabled status).',
+  {
+    user_id: z.string().describe('The user ID to update'),
+    first_name: z.string().optional().describe('New first name'),
+    last_name: z.string().optional().describe('New last name'),
+    is_disabled: z.boolean().optional().describe('Set disabled status'),
+  },
+  async (params) => {
+    const { user_id, ...rest } = params;
+    const result = await client.updateUser(user_id, rest);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'delete_user',
+  'Delete a Looker user by ID.',
+  {
+    user_id: z.string().describe('The user ID to delete'),
+  },
+  async (params) => {
+    const result = await client.deleteUser(params.user_id);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'set_user_roles',
+  'Replace all roles for a Looker user. Pass an array of role IDs.',
+  {
+    user_id: z.string().describe('The user ID'),
+    role_ids: z.array(z.string()).describe('Array of role IDs to assign'),
+  },
+  async (params) => {
+    const result = await client.setUserRoles(params.user_id, params.role_ids);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+// ── Admin: Permission sets ──────────────────────────────────────────
+
+server.tool(
+  'list_permission_sets',
+  'List all permission sets in Looker, including their permissions.',
+  {},
+  async () => {
+    const result = await client.listPermissionSets();
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'create_permission_set',
+  'Create a new permission set with a name and list of permissions.',
+  {
+    name: z.string().describe('Name for the permission set'),
+    permissions: z.array(z.string()).describe('Array of permission strings (e.g. "access_data", "see_looks", "explore")'),
+  },
+  async (params) => {
+    const result = await client.createPermissionSet(params);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+// ── Admin: Model sets ───────────────────────────────────────────────
+
+server.tool(
+  'list_model_sets',
+  'List all model sets in Looker, showing which models each set includes.',
+  {},
+  async () => {
+    const result = await client.listModelSets();
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'create_model_set',
+  'Create a new model set with a name and list of LookML model names.',
+  {
+    name: z.string().describe('Name for the model set'),
+    models: z.array(z.string()).describe('Array of LookML model names to include'),
+  },
+  async (params) => {
+    const result = await client.createModelSet(params);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+// ── Admin: Roles ────────────────────────────────────────────────────
+
+server.tool(
+  'create_role',
+  'Create a new Looker role by combining a permission set and a model set.',
+  {
+    name: z.string().describe('Name for the role'),
+    permission_set_id: z.string().describe('ID of the permission set'),
+    model_set_id: z.string().describe('ID of the model set'),
+  },
+  async (params) => {
+    const result = await client.createRole(params);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'update_role',
+  'Update an existing Looker role (name, permission set, or model set).',
+  {
+    role_id: z.string().describe('The role ID to update'),
+    name: z.string().optional().describe('New role name'),
+    permission_set_id: z.string().optional().describe('New permission set ID'),
+    model_set_id: z.string().optional().describe('New model set ID'),
+  },
+  async (params) => {
+    const { role_id, ...rest } = params;
+    const result = await client.updateRole(role_id, rest);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+// ── Admin: User attributes ──────────────────────────────────────────
+
+server.tool(
+  'list_user_attributes',
+  'List all user attributes defined in Looker.',
+  {},
+  async () => {
+    const result = await client.listUserAttributes();
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'create_user_attribute',
+  'Create a new user attribute in Looker (e.g. for access grants).',
+  {
+    name: z.string().describe('Attribute name (must be unique, used in LookML access_grant)'),
+    label: z.string().describe('Display label'),
+    type: z.enum(['string', 'number', 'datetime', 'yesno', 'zipcode']).describe('Attribute value type'),
+    default_value: z.string().optional().describe('Default value for all users'),
+    user_can_view: z.boolean().optional().describe('Whether users can see their own value (default true)'),
+    user_can_edit: z.boolean().optional().describe('Whether users can edit their own value (default false)'),
+    value_is_hidden: z.boolean().optional().describe('Whether value is hidden (for secrets, default false)'),
+  },
+  async (params) => {
+    const result = await client.createUserAttribute(params);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'set_user_attribute_value',
+  'Set a user attribute value for a specific user (overrides group/default).',
+  {
+    user_id: z.string().describe('The user ID'),
+    user_attribute_id: z.string().describe('The user attribute ID'),
+    value: z.string().describe('The value to set'),
+  },
+  async (params) => {
+    const result = await client.setUserAttributeValue(params.user_id, params.user_attribute_id, params.value);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'get_user_attribute_values',
+  'Get all user attribute values for a specific user, showing the effective value and source (user/group/default).',
+  {
+    user_id: z.string().describe('The user ID'),
+  },
+  async (params) => {
+    const result = await client.getUserAttributeValues(params.user_id);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+// ── Admin: Groups ───────────────────────────────────────────────────
+
+server.tool(
+  'list_groups',
+  'List all groups in Looker.',
+  {},
+  async () => {
+    const result = await client.listGroups();
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'create_group',
+  'Create a new Looker group.',
+  {
+    name: z.string().describe('Name for the group'),
+  },
+  async (params) => {
+    const result = await client.createGroup(params.name);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'add_user_to_group',
+  'Add a user to a Looker group.',
+  {
+    group_id: z.string().describe('The group ID'),
+    user_id: z.string().describe('The user ID to add'),
+  },
+  async (params) => {
+    const result = await client.addUserToGroup(params.group_id, params.user_id);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'remove_user_from_group',
+  'Remove a user from a Looker group.',
+  {
+    group_id: z.string().describe('The group ID'),
+    user_id: z.string().describe('The user ID to remove'),
+  },
+  async (params) => {
+    const result = await client.removeUserFromGroup(params.group_id, params.user_id);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
+server.tool(
+  'list_group_users',
+  'List all users in a Looker group.',
+  {
+    group_id: z.string().describe('The group ID'),
+  },
+  async (params) => {
+    const result = await client.listGroupUsers(params.group_id);
+    return { content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }] };
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
